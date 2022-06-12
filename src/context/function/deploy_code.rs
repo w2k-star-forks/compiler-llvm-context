@@ -4,8 +4,11 @@
 
 use std::marker::PhantomData;
 
-use crate::context::code_type::CodeType;
+use inkwell::values::BasicValue;
+
+use crate::context::address_space::AddressSpace;
 use crate::context::function::runtime::Runtime;
+use crate::context::function::Function;
 use crate::context::Context;
 use crate::Dependency;
 use crate::WriteLLVM;
@@ -66,7 +69,24 @@ where
         context.set_function(function);
 
         context.set_basic_block(context.function().entry_block);
-        context.set_code_type(CodeType::Deploy);
+        let calldata_offset = context
+            .function()
+            .value
+            .get_nth_param(Function::ARGUMENT_INDEX_CALLDATA_OFFSET as u32)
+            .expect("Always exists")
+            .into_int_value();
+        let calldata_offset = context.builder().build_and(
+            calldata_offset,
+            context.field_const(((1 << 24) - 1) as u64),
+            "calldata_offset_masked",
+        );
+        let calldata_length = context
+            .function()
+            .value
+            .get_nth_param(Function::ARGUMENT_INDEX_CALLDATA_LENGTH as u32)
+            .expect("Always exists")
+            .into_int_value();
+        context.write_abi_data(calldata_offset, calldata_length, AddressSpace::Parent);
         self.inner.into_llvm(context)?;
         match context
             .basic_block()
@@ -79,7 +99,10 @@ where
         }
 
         context.set_basic_block(context.function().return_block);
-        context.build_return(None);
+        let return_value = context
+            .read_abi_data(AddressSpace::Parent)
+            .as_basic_value_enum();
+        context.build_return(Some(&return_value));
 
         Ok(())
     }

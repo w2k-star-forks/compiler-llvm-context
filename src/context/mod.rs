@@ -60,8 +60,8 @@ where
     /// The declared functions.
     pub functions: HashMap<String, Function<'ctx>>,
 
-    /// The current contract code type.
-    code_type: Option<CodeType>,
+    /// The contract code type.
+    code_type: CodeType,
     /// The project dependency manager.
     dependency_manager: Option<Arc<RwLock<D>>>,
     /// Whether to dump the specified IRs.
@@ -87,6 +87,7 @@ where
     pub fn new(
         llvm: &'ctx inkwell::context::Context,
         module_name: &str,
+        code_type: CodeType,
         mut optimizer: Optimizer<'ctx>,
         dependency_manager: Option<Arc<RwLock<D>>>,
         dump_flags: Vec<DumpFlag>,
@@ -106,7 +107,7 @@ where
             runtime,
             functions: HashMap::with_capacity(Self::FUNCTION_HASHMAP_INITIAL_CAPACITY),
 
-            code_type: None,
+            code_type,
             dependency_manager,
             dump_flags,
 
@@ -120,12 +121,20 @@ where
     pub fn new_evm(
         llvm: &'ctx inkwell::context::Context,
         module_name: &str,
+        code_type: CodeType,
         optimizer: Optimizer<'ctx>,
         dependency_manager: Option<Arc<RwLock<D>>>,
         dump_flags: Vec<DumpFlag>,
         evm_data: EVMData<'ctx>,
     ) -> Self {
-        let mut object = Self::new(llvm, module_name, optimizer, dependency_manager, dump_flags);
+        let mut object = Self::new(
+            llvm,
+            module_name,
+            code_type,
+            optimizer,
+            dependency_manager,
+            dump_flags,
+        );
         object.evm_data = Some(evm_data);
         object
     }
@@ -226,17 +235,10 @@ where
     }
 
     ///
-    /// Sets the current code type.
-    ///
-    pub fn set_code_type(&mut self, code_type: CodeType) {
-        self.code_type = Some(code_type);
-    }
-
-    ///
     /// Returns the current code type.
     ///
     pub fn code_type(&self) -> CodeType {
-        self.code_type.expect("Always exists")
+        self.code_type
     }
 
     ///
