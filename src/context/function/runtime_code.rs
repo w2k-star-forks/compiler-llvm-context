@@ -89,6 +89,7 @@ where
             .expect("Always exists")
             .into_int_value();
         context.write_abi_data(calldata_offset, calldata_length, AddressSpace::Parent);
+
         self.inner.into_llvm(context)?;
         match context
             .basic_block()

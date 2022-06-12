@@ -25,6 +25,8 @@ where
 {
     /// The deploy code AST representation.
     inner: B,
+    /// The runtime code hash.
+    runtime_code_hash: String,
     /// The `D` phantom data.
     _pd: PhantomData<D>,
 }
@@ -37,9 +39,10 @@ where
     ///
     /// A shortcut constructor.
     ///
-    pub fn new(inner: B) -> Self {
+    pub fn new(inner: B, runtime_code_hash: String) -> Self {
         Self {
             inner,
+            runtime_code_hash,
             _pd: PhantomData::default(),
         }
     }
@@ -89,6 +92,17 @@ where
             .expect("Always exists")
             .into_int_value();
         context.write_abi_data(calldata_offset, calldata_length, AddressSpace::Parent);
+
+        let runtime_code_hash_pointer = context.access_memory(
+            context.field_const(0),
+            AddressSpace::Heap,
+            "runtime_code_hash_pointer",
+        );
+        context.build_store(
+            runtime_code_hash_pointer,
+            context.field_const_str(self.runtime_code_hash.as_str()),
+        );
+
         self.inner.into_llvm(context)?;
         match context
             .basic_block()
