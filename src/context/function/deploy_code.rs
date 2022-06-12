@@ -4,6 +4,7 @@
 
 use std::marker::PhantomData;
 
+use inkwell::types::BasicType;
 use inkwell::values::BasicValue;
 
 use crate::context::address_space::AddressSpace;
@@ -50,11 +51,12 @@ where
     D: Dependency,
 {
     fn declare(&mut self, context: &mut Context<D>) -> anyhow::Result<()> {
-        let function_type = context.function_type(0, vec![]);
+        let function_type =
+            context.function_type(1, vec![context.field_type().as_basic_type_enum(); 2]);
         context.add_function(
             Runtime::FUNCTION_DEPLOY_CODE,
             function_type,
-            Some(inkwell::module::Linkage::Private),
+            Some(inkwell::module::Linkage::External),
         );
 
         self.inner.declare(context)
