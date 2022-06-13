@@ -94,7 +94,10 @@ where
         context.write_abi_data(calldata_offset, calldata_length, AddressSpace::Parent);
 
         let runtime_code_hash_pointer = context.access_memory(
-            context.field_const(0),
+            context.field_const(
+                (compiler_common::ABI_MEMORY_OFFSET_CONSTRUCTOR_RETURN_DATA
+                    * compiler_common::SIZE_FIELD) as u64,
+            ),
             AddressSpace::Heap,
             "runtime_code_hash_pointer",
         );
