@@ -260,8 +260,20 @@ where
     pub fn optimize(&self) -> bool {
         let mut is_optimized = false;
 
+        let functions: Vec<_> = self.module().get_functions().collect();
+        for function in functions {
+            is_optimized |= self.optimizer.run_on_function(function);
+        }
+        is_optimized |= self.optimizer.run_on_module(self.module());
+
+        print!("second run");
+        /*
         for (_, function) in self.functions.iter() {
             is_optimized |= self.optimizer.run_on_function(function.value);
+        } */
+        let functions2: Vec<_> = self.module().get_functions().collect();
+        for function in functions2 {
+            is_optimized |= self.optimizer.run_on_function(function);
         }
         is_optimized |= self.optimizer.run_on_module(self.module());
 
