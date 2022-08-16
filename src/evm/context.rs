@@ -169,6 +169,24 @@ where
 }
 
 ///
+/// Translates the `basefee` instruction.
+///
+pub fn basefee<'ctx, D>(
+    context: &mut Context<'ctx, D>,
+) -> anyhow::Result<Option<inkwell::values::BasicValueEnum<'ctx>>>
+where
+    D: Dependency,
+{
+    crate::evm::contract::request::request(
+        context,
+        context.field_const_str(compiler_common::ABI_ADDRESS_SYSTEM_CONTEXT),
+        "baseFee()",
+        vec![],
+    )
+    .map(Some)
+}
+
+///
 /// Translates the `memory_size` instruction.
 ///
 pub fn msize<'ctx, D>(
