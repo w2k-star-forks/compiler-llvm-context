@@ -12,6 +12,7 @@ pub mod function;
 pub mod r#loop;
 pub mod optimizer;
 
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::RwLock;
@@ -73,6 +74,9 @@ where
     /// The immutables size tracker. Stores the size in bytes.
     /// Does not take into account the size of the indexes.
     immutables_size: usize,
+    /// The immutables identifier-to-offset mapping. Is only used by Solidity due to
+    /// the arbitrariness of its identifiers.
+    immutables: BTreeMap<String, usize>,
 }
 
 impl<'ctx, D> Context<'ctx, D>
@@ -116,6 +120,7 @@ where
 
             evm_data: None,
             immutables_size: 0,
+            immutables: BTreeMap::new(),
         }
     }
 
@@ -1382,18 +1387,46 @@ where
     }
 
     ///
-    /// Returns the current immutable size.
+    /// Returns the current number of immutables values in the contract.
+    ///
+    /// If the size is set manually, then it is returned. Otherwise, the number of elements in
+    /// the identifier-to-offset mapping tree is returned.
     ///
     pub fn immutable_size(&self) -> usize {
-        self.immutables_size
+        if self.immutables_size > 0 {
+            self.immutables_size
+        } else {
+            self.immutables.len() * compiler_common::SIZE_FIELD
+        }
     }
 
     ///
-    /// Updates the current immutable size.
+    /// Allocates memory for an immutable value in the auxiliary heap.
     ///
-    pub fn update_immutable_size(&mut self, value: usize) {
-        if value > self.immutables_size {
-            self.immutables_size = value;
-        }
+    /// If the identifier is already knows, just returns its offset.
+    ///
+    pub fn allocate_immutable(&mut self, identifier: &str) -> usize {
+        let number_of_elements = self.immutables.len();
+        let new_offset = number_of_elements * compiler_common::SIZE_FIELD;
+        *self
+            .immutables
+            .entry(identifier.to_owned())
+            .or_insert(new_offset)
+    }
+
+    ///
+    /// Gets the offset of the immutable value.
+    ///
+    pub fn get_immutable(&self, identifier: &str) -> Option<usize> {
+        self.immutables.get(identifier).copied()
+    }
+
+    ///
+    /// Sets the current immutable size.
+    ///
+    /// Only used for Vyper, where the size of immutables in known in advance.
+    ///
+    pub fn set_immutable_size(&mut self, value: usize) {
+        self.immutables_size = value;
     }
 }
